@@ -1,1 +1,6 @@
 ﻿scikit-learn
+joblib
+transformers
+torch
+accelerate
+bitsandbytes

@@ -1,0 +1,26 @@
+{
+  "train_size": 11314,
+  "test_size": 7532,
+  "metrics": {
+    "accuracy": 0.8198353690918747
+  },
+  "tfidf_params": {
+    "max_features": 20000,
+    "ngram_range": [
+      1,
+      2
+    ],
+    "min_df": 2,
+    "max_df": 0.9,
+    "sublinear_tf": true
+  },
+  "logreg_params": {
+    "max_iter": 1000,
+    "solver": "lbfgs"
+  },
+  "artifacts": {
+    "pipeline": "D:\\Projects\\llm-nlp-evaluation-pipeline\\modeling\\configs\\baseline_tfidf_logreg_pipeline.joblib",
+    "vectorizer": "D:\\Projects\\llm-nlp-evaluation-pipeline\\modeling\\configs\\baseline_tfidf_vectorizer.joblib",
+    "logreg": "D:\\Projects\\llm-nlp-evaluation-pipeline\\modeling\\configs\\baseline_tfidf_logreg.joblib"
+  }
+}
