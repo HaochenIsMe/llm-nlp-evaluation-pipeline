@@ -38,12 +38,19 @@ def train_and_evaluate(
     output_dir: Path,
     tfidf_params: Optional[Dict[str, Any]] = None,
     logreg_params: Optional[Dict[str, Any]] = None,
+    verbose: bool = True,
 ) -> Dict[str, Any]:
     model_dir.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     tfidf_params = tfidf_params or _default_tfidf_params()
     logreg_params = logreg_params or _default_logreg_params()
+
+    if verbose:
+        print("\n[tfidf-logreg] Starting baseline run")
+        print(f"[tfidf-logreg] Train samples: {len(train_dataset.data)}")
+        print(f"[tfidf-logreg] Test samples: {len(test_dataset.data)}")
+        print("[tfidf-logreg] Building vectorizer and classifier...")
 
     vectorizer = TfidfVectorizer(**tfidf_params)
     classifier = LogisticRegression(**logreg_params)
@@ -54,7 +61,21 @@ def train_and_evaluate(
         ]
     )
 
+    # TEMP ANNOTATION: This section is the TF-IDF matrix generation/training block.
+    # It is CPU-bound by design (not using GPU), and logs are kept explicit for readability.
+    if verbose:
+        print("[tfidf-logreg] Fitting TF-IDF matrix + Logistic Regression...")
     pipeline.fit(train_dataset.data, train_dataset.target)
+    train_matrix_shape = pipeline.named_steps["tfidf"].transform(train_dataset.data).shape
+    test_matrix_shape = pipeline.named_steps["tfidf"].transform(test_dataset.data).shape
+    # TEMP ANNOTATION END
+    if verbose:
+        print(
+            "[tfidf-logreg] [matrices generation complete] "
+            f"train={train_matrix_shape}, test={test_matrix_shape}"
+        )
+        print("[tfidf-logreg] Running inference on test split...")
+
     predictions = pipeline.predict(test_dataset.data)
     accuracy = accuracy_score(test_dataset.target, predictions)
 
@@ -87,6 +108,12 @@ def train_and_evaluate(
     metadata_path = output_dir / "run_tfidf_logreg_metadata.json"
     with metadata_path.open("w", encoding="utf-8") as handle:
         json.dump(metadata, handle, indent=2)
+
+    if verbose:
+        print("[tfidf-logreg] [complete]")
+        print(f"[tfidf-logreg] Accuracy: {accuracy:.4f}")
+        print(f"[tfidf-logreg] Artifacts: {model_dir}")
+        print(f"[tfidf-logreg] Metadata: {metadata_path}\n")
 
     return metadata
 
