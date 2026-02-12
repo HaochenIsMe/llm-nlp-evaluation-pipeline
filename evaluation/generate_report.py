@@ -20,6 +20,12 @@ def _fmt(value: float) -> str:
     return f"{value:.4f}"
 
 
+def _build_aliases(labels: List[str]) -> List[str]:
+    if len(labels) > 26:
+        raise ValueError("Only supports up to 26 labels for A-Z aliases")
+    return [chr(ord("A") + i) for i in range(len(labels))]
+
+
 def _top_confusions(matrix: List[List[int]], labels: List[str], top_n: int = 10) -> List[Tuple[str, str, int]]:
     pairs: List[Tuple[str, str, int]] = []
     for i, row in enumerate(matrix):
@@ -32,18 +38,57 @@ def _top_confusions(matrix: List[List[int]], labels: List[str], top_n: int = 10)
     return pairs[:top_n]
 
 
-def _matrix_html(matrix: List[List[int]], labels: List[str], title: str) -> str:
-    header_cells = "".join(f"<th>{html.escape(name)}</th>" for name in labels)
+def _cell_style(value: int, max_value: int) -> str:
+    if value <= 0 or max_value <= 0:
+        return "background-color: #ffffff;"
+    ratio = value / max_value
+    # Larger value -> darker color.
+    lightness = 97 - int(52 * ratio)
+    return f"background-color: hsl(197, 82%, {lightness}%);"
+
+
+def _matrix_html(matrix: List[List[int]], labels: List[str], aliases: List[str], title: str) -> str:
+    max_value = max((max(row) for row in matrix), default=0)
+    header_cells = "".join(f"<th>{html.escape(alias)}</th>" for alias in aliases)
+
     body_rows = []
     for i, row in enumerate(matrix):
-        cells = "".join(f"<td>{int(v)}</td>" for v in row)
-        body_rows.append(f"<tr><th>{html.escape(labels[i])}</th>{cells}</tr>")
+        cells = []
+        for value in row:
+            style = _cell_style(int(value), max_value)
+            cells.append(f"<td style='{style}'>{int(value)}</td>")
+        body_rows.append(f"<tr><th>{html.escape(aliases[i])}</th>{''.join(cells)}</tr>")
+
+    legend = (
+        "<div class='heat-legend'>"
+        "<span>颜色深浅: 小</span>"
+        "<span class='box light'></span>"
+        "<span class='box mid'></span>"
+        "<span class='box dark'></span>"
+        "<span>大</span>"
+        "</div>"
+    )
+
     return (
         f"<h3>{html.escape(title)}</h3>"
         "<div class='table-wrap'><table class='matrix'>"
         f"<thead><tr><th>真实\\预测</th>{header_cells}</tr></thead>"
         f"<tbody>{''.join(body_rows)}</tbody>"
         "</table></div>"
+        f"{legend}"
+    )
+
+
+def _alias_mapping_html(labels: List[str], aliases: List[str]) -> str:
+    rows = []
+    for alias, label in zip(aliases, labels):
+        rows.append(f"<tr><td><b>{html.escape(alias)}</b></td><td>{html.escape(label)}</td></tr>")
+    return (
+        "<h3>类别缩写映射（A~T）</h3>"
+        "<table class='alias-map'>"
+        "<thead><tr><th>缩写</th><th>原始类别</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody>"
+        "</table>"
     )
 
 
@@ -60,9 +105,14 @@ def _find_edge() -> Path | None:
 
 def _write_html(report_html: Path, detailed: Dict[str, object], summary: Dict[str, object]) -> None:
     labels = list(summary["dataset"]["categories"])
+    aliases = _build_aliases(labels)
+    label_to_alias = {label: alias for label, alias in zip(labels, aliases)}
 
     tfidf = detailed["tfidf_logreg"]
     llm = detailed["llm_classifier"]
+
+    llm_meta_path = PROJECT_ROOT / "modeling" / "configs" / "llm_run_metadata.json"
+    llm_model_name = str(_load_json(llm_meta_path).get("model", "N/A")) if llm_meta_path.exists() else "N/A"
 
     tfidf_top_errors = _top_confusions(tfidf["confusion_matrix_20x20"], labels, top_n=12)
     llm_top_errors = _top_confusions(llm["confusion_matrix_20x20"], labels, top_n=12)
@@ -70,9 +120,11 @@ def _write_html(report_html: Path, detailed: Dict[str, object], summary: Dict[st
     def top_error_list(items: List[Tuple[str, str, int]]) -> str:
         lines = []
         for true_label, pred_label, count in items:
+            true_alias = label_to_alias[true_label]
+            pred_alias = label_to_alias[pred_label]
             lines.append(
-                f"<li><code>{html.escape(true_label)}</code> 被预测为 "
-                f"<code>{html.escape(pred_label)}</code>: <b>{count}</b> 次</li>"
+                f"<li><code>{html.escape(true_alias)}</code> ({html.escape(true_label)}) 被预测为 "
+                f"<code>{html.escape(pred_alias)}</code> ({html.escape(pred_label)}): <b>{count}</b> 次</li>"
             )
         return "<ol>" + "".join(lines) + "</ol>"
 
@@ -82,7 +134,7 @@ def _write_html(report_html: Path, detailed: Dict[str, object], summary: Dict[st
   <meta charset="utf-8" />
   <title>20 Newsgroups 分类评估报告</title>
   <style>
-    @page {{ size: A4; margin: 16mm; }}
+    @page {{ size: A4; margin: 14mm; }}
     body {{ font-family: "Microsoft YaHei", "PingFang SC", sans-serif; color: #111; line-height: 1.45; }}
     h1, h2, h3 {{ margin: 10px 0 6px; }}
     h1 {{ font-size: 24px; }}
@@ -90,13 +142,19 @@ def _write_html(report_html: Path, detailed: Dict[str, object], summary: Dict[st
     h3 {{ font-size: 14px; }}
     p, li {{ font-size: 12px; }}
     code {{ background: #f1f5f9; padding: 1px 4px; border-radius: 4px; }}
-    table {{ border-collapse: collapse; width: 100%; font-size: 10px; table-layout: fixed; }}
-    th, td {{ border: 1px solid #cbd5e1; padding: 2px 4px; text-align: center; }}
+    table {{ border-collapse: collapse; width: 100%; font-size: 9px; table-layout: fixed; }}
+    th, td {{ border: 1px solid #cbd5e1; padding: 2px 3px; text-align: center; }}
     th {{ background: #e2e8f0; }}
-    .table-wrap {{ overflow-x: auto; margin-bottom: 10px; }}
+    .table-wrap {{ overflow-x: auto; margin-bottom: 6px; }}
     .kpi {{ width: 100%; border-collapse: collapse; margin: 8px 0; }}
     .kpi th, .kpi td {{ font-size: 12px; padding: 6px; }}
+    .alias-map th, .alias-map td {{ font-size: 11px; padding: 4px; text-align: left; }}
     .note {{ background: #f8fafc; border-left: 3px solid #0ea5e9; padding: 8px; font-size: 11px; }}
+    .heat-legend {{ display: flex; align-items: center; gap: 6px; margin: 2px 0 10px; font-size: 10px; }}
+    .heat-legend .box {{ width: 14px; height: 12px; border: 1px solid #94a3b8; display: inline-block; }}
+    .heat-legend .light {{ background: hsl(197, 82%, 89%); }}
+    .heat-legend .mid {{ background: hsl(197, 82%, 70%); }}
+    .heat-legend .dark {{ background: hsl(197, 82%, 50%); }}
   </style>
 </head>
 <body>
@@ -110,7 +168,7 @@ def _write_html(report_html: Path, detailed: Dict[str, object], summary: Dict[st
   <h2>2. Baseline 与模型说明</h2>
   <ul>
     <li><b>tfidf_logreg</b>：<code>TfidfVectorizer + LogisticRegression</code>，模型工件路径见 <code>modeling/configs/run_tfidf_logreg_metadata.json</code>。</li>
-    <li><b>llm_classifier</b>：基于 Hugging Face 因果语言模型的 zero-shot 分类（当前记录模型：<code>{html.escape(str(_load_json(PROJECT_ROOT / 'modeling' / 'configs' / 'llm_run_metadata.json').get('model', 'N/A')))}</code>）。</li>
+    <li><b>llm_classifier</b>：基于 Hugging Face 因果语言模型的 zero-shot 分类，当前记录模型为 <code>{html.escape(llm_model_name)}</code>。</li>
   </ul>
 
   <h2>3. 配置说明</h2>
@@ -164,8 +222,10 @@ def _write_html(report_html: Path, detailed: Dict[str, object], summary: Dict[st
   </table>
 
   <h2>7. 混淆矩阵与误差分析</h2>
-  { _matrix_html(tfidf['confusion_matrix_20x20'], labels, 'TF-IDF + LogReg 混淆矩阵 (20x20)') }
-  { _matrix_html(llm['confusion_matrix_20x20'], labels, 'LLM 混淆矩阵 (20x20，仅统计可映射标签)') }
+  <p>为解决类别名称过长导致的显示出界，混淆矩阵统一使用 <b>A~T</b> 表示 20 个类别；完整映射见下方表格。</p>
+  {_matrix_html(tfidf['confusion_matrix_20x20'], labels, aliases, 'TF-IDF + LogReg 混淆矩阵 (20x20)')}
+  {_matrix_html(llm['confusion_matrix_20x20'], labels, aliases, 'LLM 混淆矩阵 (20x20，仅统计可映射标签)')}
+  {_alias_mapping_html(labels, aliases)}
 
   <h3>TF-IDF + LogReg 主要混淆对</h3>
   {top_error_list(tfidf_top_errors)}

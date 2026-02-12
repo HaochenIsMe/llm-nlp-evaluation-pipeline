@@ -2,7 +2,7 @@
 
 本项目实现一个可复现的文本分类评估流水线，对比两类方法在 `20 Newsgroups` 数据集上的表现：
 - 传统基线：`TF-IDF + Logistic Regression`
-- LLM 基线：`llm_classifier`（zero-shot）
+- LLM 基线：`llm_classifier`（zero-shot，模型：`Qwen/Qwen2.5-1.5B-Instruct`）
 
 项目当前支持：
 - 训练并评估传统基线
@@ -150,3 +150,4 @@ python evaluation/generate_report.py
 ## 9. 许可与用途
 
 本项目用于学习与实验目的，请在遵守数据集与模型许可条款的前提下使用。
+
