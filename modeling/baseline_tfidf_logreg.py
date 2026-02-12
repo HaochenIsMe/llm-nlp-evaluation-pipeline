@@ -14,6 +14,10 @@ from sklearn.pipeline import Pipeline
 from data.data_loader import load_20newsgroups
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+OUTPUTS_DIR = PROJECT_ROOT / "outputs"
+
+
 def _default_tfidf_params() -> Dict[str, Any]:
     return {
         "max_features": 20000,
@@ -36,12 +40,16 @@ def train_and_evaluate(
     test_dataset,
     model_dir: Path,
     output_dir: Path,
+    metadata_dir: Optional[Path] = None,
     tfidf_params: Optional[Dict[str, Any]] = None,
     logreg_params: Optional[Dict[str, Any]] = None,
     verbose: bool = True,
 ) -> Dict[str, Any]:
     model_dir.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
+    if metadata_dir is None:
+        metadata_dir = output_dir
+    metadata_dir.mkdir(parents=True, exist_ok=True)
 
     tfidf_params = tfidf_params or _default_tfidf_params()
     logreg_params = logreg_params or _default_logreg_params()
@@ -105,15 +113,25 @@ def train_and_evaluate(
         },
     }
 
-    metadata_path = output_dir / "run_tfidf_logreg_metadata.json"
+    results_txt_path = output_dir / "baseline_tfidf_logreg_results.txt"
+    with results_txt_path.open("w", encoding="utf-8") as handle:
+        handle.write("[tfidf-logreg]\n")
+        handle.write(f"train_size={metadata['train_size']}\n")
+        handle.write(f"test_size={metadata['test_size']}\n")
+        handle.write(f"accuracy={accuracy:.4f}\n")
+    metadata["results_txt_path"] = str(results_txt_path)
+
+    metadata_path = metadata_dir / "run_tfidf_logreg_metadata.json"
     with metadata_path.open("w", encoding="utf-8") as handle:
         json.dump(metadata, handle, indent=2)
+    metadata["metadata_path"] = str(metadata_path)
 
     if verbose:
         print("[tfidf-logreg] [complete]")
         print(f"[tfidf-logreg] Accuracy: {accuracy:.4f}")
         print(f"[tfidf-logreg] Artifacts: {model_dir}")
         print(f"[tfidf-logreg] Metadata: {metadata_path}\n")
+        print(f"[tfidf-logreg] Results: {results_txt_path}\n")
 
     return metadata
 
@@ -138,7 +156,8 @@ def main() -> None:
         train_dataset=train_dataset,
         test_dataset=test_dataset,
         model_dir=Path(__file__).resolve().parent / "artifacts",
-        output_dir=Path(__file__).resolve().parent / "configs",
+        output_dir=OUTPUTS_DIR,
+        metadata_dir=Path(__file__).resolve().parent / "configs",
     )
 
     print("Logistic regression baseline training complete.")
@@ -147,6 +166,7 @@ def main() -> None:
         "Run metadata saved to: "
         f"{Path(__file__).resolve().parent / 'configs' / 'run_tfidf_logreg_metadata.json'}"
     )
+    print(f"Results saved to: {OUTPUTS_DIR / 'baseline_tfidf_logreg_results.txt'}")
 
 
 if __name__ == "__main__":

@@ -1,152 +1,152 @@
-# 基于 NLP / LLM 的文本主题分类评测 Pipeline
+﻿# LLM NLP 评估流水线（20 Newsgroups）
 
-## 目录
-- [项目背景与目的](#项目背景与目的)
-- [研究假设](#研究假设)
-- [方法与整体流程](#方法与整体流程)
-- [基线方法](#基线方法)
-  - [Baseline A：传统 NLP 方法](#baseline-a传统-nlp-方法)
-  - [Baseline B：基于 LLM 的方法](#baseline-b基于-llm-的方法)
-- [数据集说明](#数据集说明)
-- [评测指标](#评测指标)
-- [实验结果展示](#实验结果展示)
-- [项目限制与不足](#项目限制与不足)
-- [项目总结](#项目总结)
+本项目实现一个可复现的文本分类评估流水线，对比两类方法在 `20 Newsgroups` 数据集上的表现：
+- 传统基线：`TF-IDF + Logistic Regression`
+- LLM 基线：`llm_classifier`（zero-shot）
 
----
+项目当前支持：
+- 训练并评估传统基线
+- 运行 LLM zero-shot 推理
+- 统一按 20 类别进行评估（Macro-Precision / Macro-Recall / Macro-F1）
+- 生成中文评估报告（HTML + PDF）
 
-## 项目背景与目的
+## 1. 项目结构
 
-文本主题分类是自然语言处理（NLP）中一个基础且具有代表性的任务，在搜索、推荐、内容理解等场景中被广泛使用。
+```text
+.
+├─ main.py
+├─ requirements.txt
+├─ data/
+│  ├─ data_loader.py
+│  └─ raw/
+├─ modeling/
+│  ├─ baseline_tfidf_logreg.py
+│  ├─ llm_classifier.py
+│  └─ configs/
+├─ outputs/
+│  ├─ baseline_tfidf_logreg_results.txt
+│  ├─ results_zero_shot.txt
+│  ├─ llm_predictions_zero_shot.jsonl
+│  └─ llm_raw_outputs_zero_shot.jsonl
+└─ evaluation/
+   ├─ evaluate_models.py
+   ├─ generate_report.py
+   ├─ outputs/
+   └─ report_zh.pdf
+```
 
-随着大语言模型（LLM）的出现，传统 NLP 方法与基于 LLM 的方法在同一任务下的表现差异，仍然需要在统一的评测框架下进行对比与分析。
+## 2. 环境安装
 
-本项目的目标是：
+建议 Python 3.10+。
 
-- 构建一个端到端的文本主题分类评测 pipeline  
-- 在相同数据集和评测指标下，对比传统 NLP 方法与 LLM 方法的效果  
-- 分析不同方法的优势、局限性及其适用场景  
+```bash
+pip install -r requirements.txt
+```
 
-本项目侧重于**流程完整性、评测一致性和结果可解释性**。
+说明：
+- `requirements.txt` 包含 `torch`、`transformers`、`bitsandbytes` 等依赖。
+- 运行 LLM 推理建议使用可用 CUDA 的环境。
 
----
+## 3. 运行主流程
 
-## 研究假设
+主流程会执行：
+1. 加载 `20 Newsgroups` 训练/测试数据
+2. 训练并评估 `tfidf_logreg` 基线
+3. 运行 `llm_classifier` zero-shot 推理
 
-在统一的数据集与评测指标下：
+```bash
+python main.py
+```
 
-- 不同建模方法（传统 NLP 方法 vs 基于 LLM 的方法）在文本主题分类任务上的表现存在系统性差异  
-- LLM 方法在语义理解能力上可能具有优势，但同时也受到稳定性、成本等因素的影响  
+可选参数示例：
 
----
+```bash
+python main.py --llm-max-test-samples 1000 --llm-model Qwen/Qwen2.5-1.5B-Instruct
+```
 
-## 方法与整体流程
+常用参数：
+- `--remove {headers,footers,quotes}`：数据去噪选项
+- `--llm-max-test-samples`：LLM 推理样本上限
+- `--llm-model`：Hugging Face 模型名
+- `--llm-max-chars`：单样本输入最大字符数
+- `--llm-max-input-tokens`：LLM tokenizer 截断上限
 
-本项目采用统一的处理流程，以保证不同方法在相同条件下进行公平对比：
+## 4. 输出文件说明
 
-1. 数据加载与清洗  
-2. 文本预处理（如分词、向量化等）  
-3. 使用不同方法进行文本主题分类推理  
-4. 统一计算评测指标  
-5. 对实验结果进行对比与分析  
+### 4.1 传统基线输出
+- `outputs/baseline_tfidf_logreg_results.txt`
+- `modeling/configs/run_tfidf_logreg_metadata.json`
+- `modeling/configs/baseline_tfidf_logreg_pipeline.joblib`
 
-整体流程强调**可复现性**和**一致性**。
+### 4.2 LLM 输出
+- `outputs/results_zero_shot.txt`
+- `outputs/llm_predictions_zero_shot.jsonl`
+- `outputs/llm_raw_outputs_zero_shot.jsonl`
+- `modeling/configs/llm_run_metadata.json`
 
----
+## 5. 统一评估（20 类别）
 
-## 基线方法
+`evaluation/evaluate_models.py` 会：
+- 对 `tfidf_logreg` 与 `llm_classifier` 统一评估
+- 计算 `Macro-Precision`、`Macro-Recall`、`Macro-F1`
+- 导出每个类别（20 类）的 Precision/Recall/F1
+- 导出混淆矩阵（含 LLM unknown 版本）
 
-### Baseline A：传统 NLP 方法（TF-IDF + Logistic Regression）
+运行：
 
-本基线采用经典的传统 NLP 文本分类流程：
+```bash
+python evaluation/evaluate_models.py
+```
 
-- 使用 **scikit-learn 提供的 TF-IDF 向量化器**，将原始文本映射为稀疏的高维特征表示  
-- 基于 **Logistic Regression 线性分类器**，在 TF-IDF 特征空间上进行多类别主题分类  
+输出目录：`evaluation/outputs/`
+- `metrics_summary.json`
+- `detailed_metrics.json`
+- `per_class_metrics.csv`
+- `confusion_matrix_tfidf_logreg_20x20.csv`
+- `confusion_matrix_llm_classifier_20x20.csv`
+- `confusion_matrix_llm_classifier_20x21_with_unknown.csv`
 
-该方法作为文本分类领域的标准基线，具有**实现成熟、训练高效、结果可解释**等优点，常用于评估更复杂模型（如深度学习或大语言模型）在同一任务上的性能增益。
+## 6. 生成中文评估报告（PDF）
 
+`evaluation/generate_report.py` 会基于评估输出生成：
+- 中文 HTML 报告：`evaluation/report_zh.html`
+- 中文 PDF 报告：`evaluation/report_zh.pdf`
 
----
+运行：
 
-### Baseline B：基于 LLM 的方法
+```bash
+python evaluation/generate_report.py
+```
 
-- 使用预训练大语言模型进行文本主题分类  
-- 采用零样本（zero-shot）或少样本（few-shot）提示方式  
+报告内容包括：
+- 数据集说明
+- baseline 说明
+- 配置说明
+- 全流程结构（pipeline）
+- 输出说明
+- 指标选择说明
+- 混淆矩阵与误差分析
 
-该方法用于评估 LLM 在无需显式任务训练情况下的分类能力。
+## 7. 指标选择说明
 
----
+本项目优先使用 Macro 指标：
+- `Macro-Precision`
+- `Macro-Recall`
+- `Macro-F1`
 
-## 数据集说明
+原因：20 类文本分类任务中，类别难度和分布可能不均衡，Macro 指标对每个类别等权重，更适合做模型横向对比。
 
-本项目使用 **scikit-learn** 提供的 `20 Newsgroups` 文本主题分类数据集接口进行实验。
+## 8. 常见问题
 
-- 数据集通过 `sklearn.datasets.fetch_20newsgroups` 接口获取  
-- 数据来源为经典的 20 Newsgroups 新闻组文本集合  
-- 数据集包含 **20 个不同的主题类别**，适用于文本主题分类任务  
-- 每条样本为一段新闻文本，并带有对应的主题标签  
-- 本项目使用训练集或其子集进行实验与验证  
+1. LLM 出现无法映射到 20 类标签的输出怎么办？  
+在评估阶段会被记为 `unknown`，并在输出文件中给出占比。
 
-在数据加载阶段，可选择性移除文本中的 **headers / footers / quotes**，以减少与主题无关的噪声信息。
+2. 评估脚本为什么要重新加载测试集？  
+为了保证两个模型在同一测试集合上统一计算指标，避免样本不一致。
 
-该数据集仅用于学习与实验目的。
+3. PDF 生成依赖什么？  
+当前实现使用本地 Edge headless 打印 HTML 为 PDF。
 
----
+## 9. 许可与用途
 
-## 评测指标
-
-为全面评估模型性能，本项目采用以下指标：
-
-- Accuracy  
-- Precision  
-- Recall  
-- F1-score  
-
-其中，F1-score 用于在类别分布不均衡的情况下，更稳健地衡量模型整体性能。
-
----
-
-## 实验结果展示
-
-通过统一评测框架，对不同方法的分类效果进行量化对比，并分析各方法在不同指标下的表现差异。
-
-实验结果以表格形式呈现，便于直观比较。
-
----
-
-## 项目限制与不足
-
-- 数据集规模有限，实验结论的泛化能力存在限制  
-- LLM 方法对提示词（prompt）较为敏感  
-- 当前评测仅关注分类效果，未纳入推理延迟与计算成本  
-- 实验仅覆盖单一文本任务，尚未扩展至更多 NLP 场景  
-
----
-
-## 项目总结
-
-本项目通过构建统一的文本主题分类评测 pipeline，对传统 NLP 方法与基于 LLM 的方法进行了系统性对比。
-
-项目强调流程完整性、评测一致性与结果可解释性，为后续更复杂的 NLP / LLM 应用提供参考。
-
----
-
-TODO：
-1. 选一个公开、可查、多主题的数据集
-2. 数据清洗
-    1. 为什么要清洗
-    2. 清洗了什么
-3. 文本预处理
-4. 传统 NLP 建模
-    1. TF-IDF 实装
-    2. 线性分类器实装
-5. LLM 建模
-    1. zero-shot / few-shot
-    2. 用哪个 LLM
-    3. 如何推理
-6. 文本主题分类推理
-7. 指标计算与结果对比分析
-
-TODO：
-1. README里面写出我选择了这个而不选择别的的理由
-2. 自己搞懂原理，可以口头回答
+本项目用于学习与实验目的，请在遵守数据集与模型许可条款的前提下使用。

@@ -2,7 +2,7 @@
   "train_size": 11314,
   "test_size": 7532,
   "metrics": {
-    "accuracy": 0.8198353690918747
+    "accuracy": 0.6610462028677642
   },
   "tfidf_params": {
     "max_features": 20000,
@@ -22,5 +22,6 @@
     "pipeline": "D:\\Projects\\llm-nlp-evaluation-pipeline\\modeling\\configs\\baseline_tfidf_logreg_pipeline.joblib",
     "vectorizer": "D:\\Projects\\llm-nlp-evaluation-pipeline\\modeling\\configs\\baseline_tfidf_vectorizer.joblib",
     "logreg": "D:\\Projects\\llm-nlp-evaluation-pipeline\\modeling\\configs\\baseline_tfidf_logreg.joblib"
-  }
+  },
+  "results_txt_path": "D:\\Projects\\llm-nlp-evaluation-pipeline\\outputs\\baseline_tfidf_logreg_results.txt"
 }

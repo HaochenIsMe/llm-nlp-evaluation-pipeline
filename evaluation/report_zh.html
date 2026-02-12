@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>20 Newsgroups 分类评估报告</title>
+  <style>
+    @page { size: A4; margin: 16mm; }
+    body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; color: #111; line-height: 1.45; }
+    h1, h2, h3 { margin: 10px 0 6px; }
+    h1 { font-size: 24px; }
+    h2 { font-size: 18px; border-left: 4px solid #0f766e; padding-left: 8px; }
+    h3 { font-size: 14px; }
+    p, li { font-size: 12px; }
+    code { background: #f1f5f9; padding: 1px 4px; border-radius: 4px; }
+    table { border-collapse: collapse; width: 100%; font-size: 10px; table-layout: fixed; }
+    th, td { border: 1px solid #cbd5e1; padding: 2px 4px; text-align: center; }
+    th { background: #e2e8f0; }
+    .table-wrap { overflow-x: auto; margin-bottom: 10px; }
+    .kpi { width: 100%; border-collapse: collapse; margin: 8px 0; }
+    .kpi th, .kpi td { font-size: 12px; padding: 6px; }
+    .note { background: #f8fafc; border-left: 3px solid #0ea5e9; padding: 8px; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <h1>20 Newsgroups 文本分类评估报告</h1>
+  <p>本报告由 <code>evaluation/evaluate_models.py</code> 与 <code>evaluation/generate_report.py</code> 自动生成。</p>
+
+  <h2>1. 数据集说明</h2>
+  <p>数据集为 <b>20 Newsgroups</b>，共 20 个主题类别，测试集样本数为 <b>7532</b>。</p>
+  <p>本项目数据加载函数为 <code>data/data_loader.py</code>，使用 <code>fetch_20newsgroups</code> 并移除 headers/footers/quotes 噪声字段。</p>
+
+  <h2>2. Baseline 与模型说明</h2>
+  <ul>
+    <li><b>tfidf_logreg</b>：<code>TfidfVectorizer + LogisticRegression</code>，模型工件路径见 <code>modeling/configs/run_tfidf_logreg_metadata.json</code>。</li>
+    <li><b>llm_classifier</b>：基于 Hugging Face 因果语言模型的 zero-shot 分类（当前记录模型：<code>Qwen/Qwen2.5-1.5B-Instruct</code>）。</li>
+  </ul>
+
+  <h2>3. 配置说明</h2>
+  <ul>
+    <li>训练/推理入口：<code>main.py</code></li>
+    <li>传统基线配置：<code>modeling/configs/run_tfidf_logreg_metadata.json</code></li>
+    <li>LLM 运行配置：<code>modeling/configs/llm_run_metadata.json</code></li>
+    <li>评估输出目录：<code>evaluation/outputs</code></li>
+  </ul>
+
+  <h2>4. 全流程结构（Pipeline）</h2>
+  <ol>
+    <li>加载 20 Newsgroups 数据（训练/测试）</li>
+    <li>训练 TF-IDF + Logistic Regression 基线并保存模型</li>
+    <li>运行 LLM zero-shot 预测并保存 JSONL 结果</li>
+    <li>统一评估脚本读取两种模型输出，计算宏平均与按类指标</li>
+    <li>生成评估工件（JSON/CSV）并产出中文 PDF 报告</li>
+  </ol>
+
+  <h2>5. 输出说明</h2>
+  <ul>
+    <li><code>evaluation/outputs/metrics_summary.json</code>：核心宏平均指标</li>
+    <li><code>evaluation/outputs/detailed_metrics.json</code>：按类指标与混淆矩阵</li>
+    <li><code>evaluation/outputs/per_class_metrics.csv</code>：20 类别逐类 Precision/Recall/F1</li>
+    <li><code>evaluation/outputs/confusion_matrix_*.csv</code>：混淆矩阵数据</li>
+  </ul>
+
+  <h2>6. 评估指标选择说明</h2>
+  <p>本项目使用 <b>Macro-Precision / Macro-Recall / Macro-F1</b> 作为核心指标。原因：20 类别任务中，不同类别难度差异明显，宏平均能够让每个类别等权重参与评估，避免被高频类别主导。</p>
+
+  <table class="kpi">
+    <thead>
+      <tr><th>模型</th><th>Macro-Precision</th><th>Macro-Recall</th><th>Macro-F1</th><th>未知预测占比</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>tfidf_logreg</td>
+        <td>0.6653</td>
+        <td>0.6469</td>
+        <td>0.6450</td>
+        <td>0.0000</td>
+      </tr>
+      <tr>
+        <td>llm_classifier</td>
+        <td>0.3580</td>
+        <td>0.1865</td>
+        <td>0.2001</td>
+        <td>0.2775</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>7. 混淆矩阵与误差分析</h2>
+  <h3>TF-IDF + LogReg 混淆矩阵 (20x20)</h3><div class='table-wrap'><table class='matrix'><thead><tr><th>真实\预测</th><th>alt.atheism</th><th>comp.graphics</th><th>comp.os.ms-windows.misc</th><th>comp.sys.ibm.pc.hardware</th><th>comp.sys.mac.hardware</th><th>comp.windows.x</th><th>misc.forsale</th><th>rec.autos</th><th>rec.motorcycles</th><th>rec.sport.baseball</th><th>rec.sport.hockey</th><th>sci.crypt</th><th>sci.electronics</th><th>sci.med</th><th>sci.space</th><th>soc.religion.christian</th><th>talk.politics.guns</th><th>talk.politics.mideast</th><th>talk.politics.misc</th><th>talk.religion.misc</th></tr></thead><tbody><tr><th>alt.atheism</th><td>139</td><td>3</td><td>1</td><td>0</td><td>4</td><td>3</td><td>0</td><td>3</td><td>13</td><td>16</td><td>1</td><td>2</td><td>5</td><td>10</td><td>16</td><td>64</td><td>14</td><td>10</td><td>6</td><td>9</td></tr><tr><th>comp.graphics</th><td>2</td><td>261</td><td>20</td><td>10</td><td>12</td><td>21</td><td>8</td><td>4</td><td>6</td><td>9</td><td>0</td><td>3</td><td>14</td><td>3</td><td>13</td><td>1</td><td>2</td><td>0</td><td>0</td><td>0</td></tr><tr><th>comp.os.ms-windows.misc</th><td>4</td><td>28</td><td>236</td><td>33</td><td>15</td><td>14</td><td>0</td><td>2</td><td>5</td><td>23</td><td>0</td><td>4</td><td>5</td><td>4</td><td>12</td><td>1</td><td>3</td><td>2</td><td>2</td><td>1</td></tr><tr><th>comp.sys.ibm.pc.hardware</th><td>0</td><td>16</td><td>37</td><td>239</td><td>26</td><td>5</td><td>14</td><td>6</td><td>1</td><td>8</td><td>1</td><td>3</td><td>35</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><th>comp.sys.mac.hardware</th><td>0</td><td>9</td><td>14</td><td>32</td><td>246</td><td>2</td><td>8</td><td>13</td><td>4</td><td>18</td><td>3</td><td>1</td><td>26</td><td>1</td><td>7</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><th>comp.windows.x</th><td>1</td><td>58</td><td>27</td><td>7</td><td>4</td><td>262</td><td>3</td><td>1</td><td>4</td><td>10</td><td>0</td><td>3</td><td>3</td><td>3</td><td>6</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td></tr><tr><th>misc.forsale</th><td>0</td><td>3</td><td>3</td><td>15</td><td>12</td><td>0</td><td>311</td><td>11</td><td>5</td><td>10</td><td>1</td><td>1</td><td>8</td><td>1</td><td>4</td><td>1</td><td>2</td><td>1</td><td>1</td><td>0</td></tr><tr><th>rec.autos</th><td>3</td><td>3</td><td>2</td><td>0</td><td>2</td><td>3</td><td>12</td><td>265</td><td>18</td><td>34</td><td>2</td><td>2</td><td>23</td><td>6</td><td>6</td><td>1</td><td>8</td><td>1</td><td>4</td><td>1</td></tr><tr><th>rec.motorcycles</th><td>4</td><td>2</td><td>0</td><td>0</td><td>2</td><td>0</td><td>7</td><td>28</td><td>298</td><td>23</td><td>0</td><td>2</td><td>11</td><td>3</td><td>7</td><td>3</td><td>7</td><td>0</td><td>1</td><td>0</td></tr><tr><th>rec.sport.baseball</th><td>7</td><td>4</td><td>1</td><td>0</td><td>1</td><td>3</td><td>5</td><td>1</td><td>8</td><td>326</td><td>22</td><td>0</td><td>4</td><td>2</td><td>1</td><td>5</td><td>0</td><td>3</td><td>4</td><td>0</td></tr><tr><th>rec.sport.hockey</th><td>6</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>1</td><td>5</td><td>31</td><td>341</td><td>1</td><td>1</td><td>1</td><td>3</td><td>3</td><td>2</td><td>0</td><td>1</td><td>1</td></tr><tr><th>sci.crypt</th><td>1</td><td>14</td><td>2</td><td>2</td><td>2</td><td>5</td><td>1</td><td>4</td><td>7</td><td>23</td><td>1</td><td>259</td><td>20</td><td>5</td><td>6</td><td>4</td><td>23</td><td>7</td><td>9</td><td>1</td></tr><tr><th>sci.electronics</th><td>0</td><td>22</td><td>12</td><td>24</td><td>16</td><td>7</td><td>12</td><td>15</td><td>9</td><td>14</td><td>2</td><td>13</td><td>222</td><td>10</td><td>12</td><td>0</td><td>2</td><td>0</td><td>0</td><td>1</td></tr><tr><th>sci.med</th><td>7</td><td>15</td><td>1</td><td>1</td><td>1</td><td>2</td><td>9</td><td>8</td><td>13</td><td>14</td><td>3</td><td>0</td><td>13</td><td>279</td><td>7</td><td>4</td><td>5</td><td>3</td><td>9</td><td>2</td></tr><tr><th>sci.space</th><td>5</td><td>9</td><td>3</td><td>0</td><td>2</td><td>0</td><td>3</td><td>6</td><td>6</td><td>23</td><td>1</td><td>3</td><td>17</td><td>12</td><td>289</td><td>1</td><td>3</td><td>3</td><td>8</td><td>0</td></tr><tr><th>soc.religion.christian</th><td>18</td><td>5</td><td>2</td><td>0</td><td>1</td><td>1</td><td>1</td><td>3</td><td>1</td><td>18</td><td>2</td><td>0</td><td>4</td><td>9</td><td>4</td><td>320</td><td>1</td><td>0</td><td>2</td><td>6</td></tr><tr><th>talk.politics.guns</th><td>7</td><td>1</td><td>2</td><td>1</td><td>2</td><td>0</td><td>2</td><td>6</td><td>9</td><td>19</td><td>3</td><td>9</td><td>4</td><td>6</td><td>8</td><td>8</td><td>251</td><td>4</td><td>16</td><td>6</td></tr><tr><th>talk.politics.mideast</th><td>23</td><td>1</td><td>2</td><td>0</td><td>1</td><td>0</td><td>1</td><td>3</td><td>9</td><td>20</td><td>1</td><td>2</td><td>3</td><td>3</td><td>3</td><td>11</td><td>7</td><td>273</td><td>12</td><td>1</td></tr><tr><th>talk.politics.misc</th><td>21</td><td>2</td><td>0</td><td>0</td><td>1</td><td>1</td><td>1</td><td>3</td><td>7</td><td>14</td><td>1</td><td>5</td><td>3</td><td>8</td><td>10</td><td>4</td><td>94</td><td>10</td><td>123</td><td>2</td></tr><tr><th>talk.religion.misc</th><td>49</td><td>5</td><td>1</td><td>1</td><td>0</td><td>2</td><td>2</td><td>5</td><td>8</td><td>11</td><td>2</td><td>1</td><td>0</td><td>10</td><td>5</td><td>71</td><td>22</td><td>8</td><td>9</td><td>39</td></tr></tbody></table></div>
+  <h3>LLM 混淆矩阵 (20x20，仅统计可映射标签)</h3><div class='table-wrap'><table class='matrix'><thead><tr><th>真实\预测</th><th>alt.atheism</th><th>comp.graphics</th><th>comp.os.ms-windows.misc</th><th>comp.sys.ibm.pc.hardware</th><th>comp.sys.mac.hardware</th><th>comp.windows.x</th><th>misc.forsale</th><th>rec.autos</th><th>rec.motorcycles</th><th>rec.sport.baseball</th><th>rec.sport.hockey</th><th>sci.crypt</th><th>sci.electronics</th><th>sci.med</th><th>sci.space</th><th>soc.religion.christian</th><th>talk.politics.guns</th><th>talk.politics.mideast</th><th>talk.politics.misc</th><th>talk.religion.misc</th></tr></thead><tbody><tr><th>alt.atheism</th><td>39</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>10</td><td>0</td><td>6</td><td>3</td><td>5</td><td>33</td><td>26</td><td>6</td><td>106</td><td>4</td><td>0</td><td>0</td><td>0</td></tr><tr><th>comp.graphics</th><td>4</td><td>50</td><td>3</td><td>8</td><td>2</td><td>1</td><td>19</td><td>53</td><td>0</td><td>2</td><td>0</td><td>0</td><td>89</td><td>0</td><td>1</td><td>19</td><td>4</td><td>0</td><td>1</td><td>0</td></tr><tr><th>comp.os.ms-windows.misc</th><td>1</td><td>5</td><td>12</td><td>62</td><td>3</td><td>8</td><td>11</td><td>51</td><td>0</td><td>9</td><td>1</td><td>1</td><td>89</td><td>1</td><td>1</td><td>35</td><td>1</td><td>0</td><td>4</td><td>0</td></tr><tr><th>comp.sys.ibm.pc.hardware</th><td>1</td><td>7</td><td>0</td><td>32</td><td>0</td><td>2</td><td>13</td><td>103</td><td>6</td><td>20</td><td>0</td><td>0</td><td>79</td><td>0</td><td>0</td><td>20</td><td>2</td><td>0</td><td>1</td><td>1</td></tr><tr><th>comp.sys.mac.hardware</th><td>2</td><td>4</td><td>3</td><td>48</td><td>16</td><td>1</td><td>13</td><td>98</td><td>4</td><td>18</td><td>0</td><td>1</td><td>55</td><td>0</td><td>0</td><td>17</td><td>1</td><td>0</td><td>1</td><td>2</td></tr><tr><th>comp.windows.x</th><td>5</td><td>12</td><td>18</td><td>18</td><td>2</td><td>9</td><td>16</td><td>36</td><td>0</td><td>7</td><td>0</td><td>2</td><td>95</td><td>3</td><td>0</td><td>20</td><td>3</td><td>0</td><td>2</td><td>1</td></tr><tr><th>misc.forsale</th><td>2</td><td>3</td><td>0</td><td>2</td><td>0</td><td>0</td><td>77</td><td>70</td><td>2</td><td>7</td><td>2</td><td>0</td><td>2</td><td>1</td><td>0</td><td>43</td><td>5</td><td>0</td><td>0</td><td>6</td></tr><tr><th>rec.autos</th><td>1</td><td>5</td><td>0</td><td>16</td><td>0</td><td>0</td><td>5</td><td>176</td><td>3</td><td>10</td><td>0</td><td>0</td><td>64</td><td>7</td><td>3</td><td>18</td><td>2</td><td>0</td><td>0</td><td>2</td></tr><tr><th>rec.motorcycles</th><td>3</td><td>3</td><td>2</td><td>5</td><td>0</td><td>0</td><td>6</td><td>115</td><td>29</td><td>18</td><td>6</td><td>3</td><td>60</td><td>7</td><td>0</td><td>31</td><td>18</td><td>0</td><td>2</td><td>1</td></tr><tr><th>rec.sport.baseball</th><td>3</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>1</td><td>18</td><td>0</td><td>174</td><td>1</td><td>0</td><td>41</td><td>15</td><td>0</td><td>25</td><td>2</td><td>0</td><td>1</td><td>1</td></tr><tr><th>rec.sport.hockey</th><td>1</td><td>1</td><td>0</td><td>3</td><td>0</td><td>0</td><td>0</td><td>20</td><td>0</td><td>63</td><td>144</td><td>1</td><td>14</td><td>12</td><td>1</td><td>32</td><td>6</td><td>0</td><td>0</td><td>0</td></tr><tr><th>sci.crypt</th><td>12</td><td>2</td><td>1</td><td>1</td><td>0</td><td>0</td><td>2</td><td>5</td><td>0</td><td>4</td><td>0</td><td>114</td><td>86</td><td>6</td><td>2</td><td>56</td><td>9</td><td>0</td><td>1</td><td>0</td></tr><tr><th>sci.electronics</th><td>5</td><td>6</td><td>0</td><td>10</td><td>2</td><td>0</td><td>8</td><td>67</td><td>1</td><td>20</td><td>1</td><td>6</td><td>148</td><td>4</td><td>0</td><td>15</td><td>2</td><td>0</td><td>2</td><td>1</td></tr><tr><th>sci.med</th><td>2</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>1</td><td>25</td><td>3</td><td>24</td><td>3</td><td>0</td><td>49</td><td>158</td><td>0</td><td>25</td><td>2</td><td>0</td><td>0</td><td>1</td></tr><tr><th>sci.space</th><td>5</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>7</td><td>0</td><td>9</td><td>2</td><td>3</td><td>86</td><td>5</td><td>143</td><td>16</td><td>2</td><td>0</td><td>1</td><td>1</td></tr><tr><th>soc.religion.christian</th><td>12</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>12</td><td>4</td><td>7</td><td>0</td><td>26</td><td>53</td><td>58</td><td>1</td><td>117</td><td>2</td><td>0</td><td>0</td><td>3</td></tr><tr><th>talk.politics.guns</th><td>11</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>11</td><td>0</td><td>20</td><td>0</td><td>11</td><td>32</td><td>15</td><td>3</td><td>130</td><td>20</td><td>0</td><td>4</td><td>0</td></tr><tr><th>talk.politics.mideast</th><td>8</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>19</td><td>0</td><td>3</td><td>2</td><td>12</td><td>12</td><td>28</td><td>5</td><td>167</td><td>7</td><td>0</td><td>2</td><td>0</td></tr><tr><th>talk.politics.misc</th><td>8</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>6</td><td>0</td><td>11</td><td>2</td><td>9</td><td>42</td><td>24</td><td>2</td><td>114</td><td>8</td><td>0</td><td>2</td><td>0</td></tr><tr><th>talk.religion.misc</th><td>14</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>12</td><td>0</td><td>9</td><td>1</td><td>4</td><td>27</td><td>20</td><td>5</td><td>86</td><td>6</td><td>0</td><td>1</td><td>2</td></tr></tbody></table></div>
+
+  <h3>TF-IDF + LogReg 主要混淆对</h3>
+  <ol><li><code>talk.politics.misc</code> 被预测为 <code>talk.politics.guns</code>: <b>94</b> 次</li><li><code>talk.religion.misc</code> 被预测为 <code>soc.religion.christian</code>: <b>71</b> 次</li><li><code>alt.atheism</code> 被预测为 <code>soc.religion.christian</code>: <b>64</b> 次</li><li><code>comp.windows.x</code> 被预测为 <code>comp.graphics</code>: <b>58</b> 次</li><li><code>talk.religion.misc</code> 被预测为 <code>alt.atheism</code>: <b>49</b> 次</li><li><code>comp.sys.ibm.pc.hardware</code> 被预测为 <code>comp.os.ms-windows.misc</code>: <b>37</b> 次</li><li><code>comp.sys.ibm.pc.hardware</code> 被预测为 <code>sci.electronics</code>: <b>35</b> 次</li><li><code>rec.autos</code> 被预测为 <code>rec.sport.baseball</code>: <b>34</b> 次</li><li><code>comp.os.ms-windows.misc</code> 被预测为 <code>comp.sys.ibm.pc.hardware</code>: <b>33</b> 次</li><li><code>comp.sys.mac.hardware</code> 被预测为 <code>comp.sys.ibm.pc.hardware</code>: <b>32</b> 次</li><li><code>rec.sport.hockey</code> 被预测为 <code>rec.sport.baseball</code>: <b>31</b> 次</li><li><code>comp.os.ms-windows.misc</code> 被预测为 <code>comp.graphics</code>: <b>28</b> 次</li></ol>
+
+  <h3>LLM 主要混淆对</h3>
+  <ol><li><code>talk.politics.mideast</code> 被预测为 <code>soc.religion.christian</code>: <b>167</b> 次</li><li><code>talk.politics.guns</code> 被预测为 <code>soc.religion.christian</code>: <b>130</b> 次</li><li><code>rec.motorcycles</code> 被预测为 <code>rec.autos</code>: <b>115</b> 次</li><li><code>talk.politics.misc</code> 被预测为 <code>soc.religion.christian</code>: <b>114</b> 次</li><li><code>alt.atheism</code> 被预测为 <code>soc.religion.christian</code>: <b>106</b> 次</li><li><code>comp.sys.ibm.pc.hardware</code> 被预测为 <code>rec.autos</code>: <b>103</b> 次</li><li><code>comp.sys.mac.hardware</code> 被预测为 <code>rec.autos</code>: <b>98</b> 次</li><li><code>comp.windows.x</code> 被预测为 <code>sci.electronics</code>: <b>95</b> 次</li><li><code>comp.graphics</code> 被预测为 <code>sci.electronics</code>: <b>89</b> 次</li><li><code>comp.os.ms-windows.misc</code> 被预测为 <code>sci.electronics</code>: <b>89</b> 次</li><li><code>sci.crypt</code> 被预测为 <code>sci.electronics</code>: <b>86</b> 次</li><li><code>sci.space</code> 被预测为 <code>sci.electronics</code>: <b>86</b> 次</li></ol>
+
+  <div class="note">
+    说明：LLM 存在部分输出无法映射到 20 个标准标签的情况，评估中记为 unknown；
+    在按 20 类混淆矩阵展示时，这部分样本不计入 20x20 方阵，详细数量见 summary 文件中的 unknown_prediction_rate。
+  </div>
+</body>
+</html>
