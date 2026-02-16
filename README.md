@@ -43,15 +43,14 @@
 
 ## 2. 环境安装
 
-建议 Python 3.10+。
+建议 Python 3.10+。使用以下命令安装本项目依赖
 
 ```bash
 pip install -r requirements.txt
 ```
 
 说明：
-- `requirements.txt` 包含 `torch`、`transformers`、`bitsandbytes` 等依赖。
-- 运行 LLM 推理建议使用可用 CUDA 的环境。
+- 运行 LLM 推理会调用本地 CUDA 环境。若不支持 CUDA 环境会回退为 CPU 进行推理。
 
 ## 3. 运行主流程
 
