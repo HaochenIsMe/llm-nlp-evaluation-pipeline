@@ -110,9 +110,14 @@ def _write_html(report_html: Path, detailed: Dict[str, object], summary: Dict[st
 
     tfidf = detailed["tfidf_logreg"]
     llm = detailed["llm_classifier"]
+    dataset_info = summary.get("dataset", {})
+    test_samples = dataset_info.get("num_test_samples", "N/A")
 
     llm_meta_path = PROJECT_ROOT / "modeling" / "configs" / "llm_run_metadata.json"
     llm_model_name = str(_load_json(llm_meta_path).get("model", "N/A")) if llm_meta_path.exists() else "N/A"
+    tfidf_meta_path = PROJECT_ROOT / "modeling" / "configs" / "run_tfidf_logreg_metadata.json"
+    tfidf_meta = _load_json(tfidf_meta_path) if tfidf_meta_path.exists() else {}
+    train_samples = dataset_info.get("num_train_samples", tfidf_meta.get("train_size", "N/A"))
 
     tfidf_top_errors = _top_confusions(tfidf["confusion_matrix_20x20"], labels, top_n=12)
     llm_top_errors = _top_confusions(llm["confusion_matrix_20x20"], labels, top_n=12)
@@ -162,21 +167,22 @@ def _write_html(report_html: Path, detailed: Dict[str, object], summary: Dict[st
   <p>本报告由 <code>evaluation/evaluate_models.py</code> 与 <code>evaluation/generate_report.py</code> 自动生成。</p>
 
   <h2>1. 数据集说明</h2>
-  <p>数据集为 <b>20 Newsgroups</b>，共 20 个主题类别，测试集样本数为 <b>{summary['dataset']['num_test_samples']}</b>。</p>
-  <p>本项目数据加载函数为 <code>data/data_loader.py</code>，使用 <code>fetch_20newsgroups</code> 并移除 headers/footers/quotes 噪声字段。</p>
+  <p><b>20 Newsgroups</b> 是一个英文新闻组文本分类数据集：每个样本是一条新闻组帖子文本；总样本数为 18846（训练集 <b>{train_samples}</b>、测试集 <b>{test_samples}</b>）；标签为 20 个主题新闻组类别。</p>
+  <p>本项目在 <code>data/data_loader.py</code> 中通过 <code>fetch_20newsgroups</code> 加载该数据集，并按设置移除 headers/footers/quotes 以降低格式噪声。</p>
+  <p>参数 <code>remove=('headers','footers','quotes')</code> 表示在加载阶段移除邮件头、邮件尾签名和历史引用段落，目标是降低与主题无关的格式噪声，避免模型利用发件信息或引用模板而非正文语义进行分类。</p>
 
   <h2>2. Baseline 与模型说明</h2>
   <ul>
-    <li><b>tfidf_logreg</b>：<code>TfidfVectorizer + LogisticRegression</code>，模型工件路径见 <code>modeling/configs/run_tfidf_logreg_metadata.json</code>。</li>
-    <li><b>llm_classifier</b>：基于 Hugging Face 因果语言模型的 zero-shot 分类，当前记录模型为 <code>{html.escape(llm_model_name)}</code>。</li>
+    <li><b>tfidf_logreg</b>：<code>TfidfVectorizer + LogisticRegression</code> 的经典稀疏特征分类基线。模型可复用对象文件（例如向量化器、分类器、完整 pipeline）会在训练后保存到磁盘，路径记录在 <code>modeling/configs/run_tfidf_logreg_metadata.json</code> 中。</li>
+    <li><b>llm_classifier</b>：基于 Hugging Face 因果语言模型的 zero-shot 分类器，当前记录模型为 <code>{html.escape(llm_model_name)}</code>。zero-shot 指不在本任务标签上进行参数微调，仅通过提示词让模型直接输出类别标签。</li>
   </ul>
 
   <h2>3. 配置说明</h2>
   <ul>
-    <li>训练/推理入口：<code>main.py</code></li>
-    <li>传统基线配置：<code>modeling/configs/run_tfidf_logreg_metadata.json</code></li>
-    <li>LLM 运行配置：<code>modeling/configs/llm_run_metadata.json</code></li>
-    <li>评估输出目录：<code>evaluation/outputs</code></li>
+    <li>训练/推理入口：<code>main.py</code>（负责串联数据加载、baseline 训练、LLM 推理）。</li>
+    <li>传统基线配置：<code>modeling/configs/run_tfidf_logreg_metadata.json</code>（记录样本规模、TF-IDF 参数、LogReg 参数、模型可复用对象文件路径与结果路径）。</li>
+    <li>LLM 运行配置：<code>modeling/configs/llm_run_metadata.json</code>（记录模型名、设备、量化方式、输入截断阈值、batch size、zero-shot 汇总结果等）。</li>
+    <li>评估输出目录：<code>evaluation/outputs</code>（统一存放模型对比评估所需的 JSON/CSV 结果文件）。</li>
   </ul>
 
   <h2>4. 全流程结构（Pipeline）</h2>
@@ -185,19 +191,19 @@ def _write_html(report_html: Path, detailed: Dict[str, object], summary: Dict[st
     <li>训练 TF-IDF + Logistic Regression 基线并保存模型</li>
     <li>运行 LLM zero-shot 预测并保存 JSONL 结果</li>
     <li>统一评估脚本读取两种模型输出，计算宏平均与按类指标</li>
-    <li>生成评估工件（JSON/CSV）并产出中文 PDF 报告</li>
+    <li>生成评估对象文件（JSON/CSV）并产出中文 PDF 报告</li>
   </ol>
 
   <h2>5. 输出说明</h2>
   <ul>
-    <li><code>evaluation/outputs/metrics_summary.json</code>：核心宏平均指标</li>
-    <li><code>evaluation/outputs/detailed_metrics.json</code>：按类指标与混淆矩阵</li>
-    <li><code>evaluation/outputs/per_class_metrics.csv</code>：20 类别逐类 Precision/Recall/F1</li>
-    <li><code>evaluation/outputs/confusion_matrix_*.csv</code>：混淆矩阵数据</li>
+    <li><code>evaluation/outputs/metrics_summary.json</code>：模型级汇总指标（Macro-Precision / Macro-Recall / Macro-F1 / unknown 占比），用于快速横向对比。</li>
+    <li><code>evaluation/outputs/detailed_metrics.json</code>：细粒度评估结果（逐类指标、混淆矩阵、unknown 计数等），用于诊断误差来源。</li>
+    <li><code>evaluation/outputs/per_class_metrics.csv</code>：20 个类别逐类 Precision/Recall/F1，便于在电子表格中筛选排序。</li>
+    <li><code>evaluation/outputs/confusion_matrix_*.csv</code>：混淆矩阵原始计数表；行表示真实标签，列表示预测标签，单元格为样本数。</li>
   </ul>
 
   <h2>6. 评估指标选择说明</h2>
-  <p>本项目使用 <b>Macro-Precision / Macro-Recall / Macro-F1</b> 作为核心指标。原因：20 类别任务中，不同类别难度差异明显，宏平均能够让每个类别等权重参与评估，避免被高频类别主导。</p>
+  <p>本项目使用 <b>Macro-Precision / Macro-Recall / Macro-F1</b> 作为核心指标。含义为：先分别计算每个类别的 Precision/Recall/F1，再对 20 个类别做等权平均。这样不会因为某些类别样本更多而主导总分，能够更公平地反映模型在长尾类别上的识别能力。</p>
 
   <table class="kpi">
     <thead>
@@ -220,10 +226,10 @@ def _write_html(report_html: Path, detailed: Dict[str, object], summary: Dict[st
       </tr>
     </tbody>
   </table>
-  <p>其中，LLM 预测中的 <code>unknown</code> 是指：模型没有以 20 个标准标签之一作答，而是输出了无法匹配任何标签的内容。</p>
+  <p>其中，LLM 预测中的 <code>unknown</code> 是指：模型输出未能解析为 20 个标准标签之一（例如输出自由文本解释、多个标签混合、或标签拼写/格式不匹配），因此在标签映射阶段被归入“不可映射预测”。</p>
 
   <h2>7. 混淆矩阵与误差分析</h2>
-  <p>为解决类别名称过长导致的显示出界，混淆矩阵统一使用 <b>A~T</b> 表示 20 个类别；完整映射见下方表格。</p>
+  <p>混淆矩阵用于展示“真实类别 vs 预测类别”的对应关系：对角线越大表示该类识别越准确，非对角线数值越大表示该真实类别更容易被误判到对应列类别。为提高可读性，图中使用 <b>A~T</b> 代替长类别名，完整映射见下方表格。</p>
   {_matrix_html(tfidf['confusion_matrix_20x20'], labels, aliases, 'TF-IDF + LogReg 混淆矩阵 (20x20)')}
   {_matrix_html(llm['confusion_matrix_20x20'], labels, aliases, 'LLM 混淆矩阵 (20x20，仅统计可映射标签)')}
   <div class="note">

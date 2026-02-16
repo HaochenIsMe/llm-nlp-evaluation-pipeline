@@ -42,7 +42,7 @@
       "unknown_prediction_rate": 0.2774827403080191
     }
   },
-  "artifacts": {
+  "object": {
     "baseline_pipeline": "D:\\Projects\\llm-nlp-evaluation-pipeline\\modeling\\configs\\baseline_tfidf_logreg_pipeline.joblib",
     "llm_predictions": "D:\\Projects\\llm-nlp-evaluation-pipeline\\outputs\\llm_predictions_zero_shot.jsonl"
   }

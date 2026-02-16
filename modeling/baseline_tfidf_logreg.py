@@ -106,7 +106,7 @@ def train_and_evaluate(
             "ngram_range": list(tfidf_params.get("ngram_range", (1, 1))),
         },
         "logreg_params": logreg_params,
-        "artifacts": {
+        "object": {
             "pipeline": str(pipeline_path),
             "vectorizer": str(vectorizer_path),
             "logreg": str(logreg_path),
@@ -129,7 +129,7 @@ def train_and_evaluate(
     if verbose:
         print("[tfidf-logreg] [complete]")
         print(f"[tfidf-logreg] Accuracy: {accuracy:.4f}")
-        print(f"[tfidf-logreg] Artifacts: {model_dir}")
+        print(f"[tfidf-logreg] Objects: {model_dir}")
         print(f"[tfidf-logreg] Metadata: {metadata_path}\n")
         print(f"[tfidf-logreg] Results: {results_txt_path}\n")
 

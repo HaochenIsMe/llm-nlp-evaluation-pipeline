@@ -142,7 +142,7 @@ def main() -> None:
     parser.add_argument(
         "--output-dir",
         default=str(PROJECT_ROOT / "evaluation" / "outputs"),
-        help="Directory to save evaluation artifacts",
+        help="Directory to save evaluation objects",
     )
     parser.add_argument(
         "--baseline-metadata",
@@ -170,7 +170,10 @@ def main() -> None:
     label_to_idx = {name: idx for idx, name in enumerate(label_names)}
 
     baseline_metadata = _load_json(Path(args.baseline_metadata))
-    baseline_pipeline_path = Path(str(baseline_metadata["artifacts"]["pipeline"]))
+    baseline_object = baseline_metadata.get("object")
+    if not baseline_object:
+        raise KeyError("Baseline metadata must contain 'object' field.")
+    baseline_pipeline_path = Path(str(baseline_object["pipeline"]))
     baseline_pipeline = joblib.load(baseline_pipeline_path)
     baseline_pred = list(baseline_pipeline.predict(test_dataset.data))
 
@@ -213,7 +216,7 @@ def main() -> None:
                 "unknown_prediction_rate": llm_eval["unknown_prediction_rate"],
             },
         },
-        "artifacts": {
+        "object": {
             "baseline_pipeline": str(baseline_pipeline_path),
             "llm_predictions": str(llm_predictions_path),
         },

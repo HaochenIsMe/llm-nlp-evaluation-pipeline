@@ -88,7 +88,7 @@ python main.py --llm-max-test-samples 1000
 - `metrics.accuracy`：基线模型整体准确率
 - `tfidf_params`：向量化核心参数（如 `max_features`、`ngram_range`、`min_df`、`max_df`）
 - `logreg_params`：逻辑回归关键参数（如 `max_iter`、`solver`）
-- `artifacts`：已保存模型工件路径（.joblib格式）
+- `object`：已保存模型可复用对象文件路径（.joblib 格式）
 
 ### 4.2 LLM 输出
 - `outputs/results_zero_shot.txt`：accuracy；unknown 占比；耗时统计；输出汇总
