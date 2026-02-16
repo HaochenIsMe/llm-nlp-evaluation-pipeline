@@ -34,7 +34,7 @@
    ├─ outputs/
    └─ report_zh.pdf
 ```
-
+1
 ## 2. 环境安装
 
 建议 Python 3.10+。
