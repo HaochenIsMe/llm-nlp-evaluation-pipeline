@@ -1,4 +1,4 @@
-﻿# LLM NLP 评估流水线（20 Newsgroups）
+﻿# 评估传统基线与 LLM 在文本分类任务上的表现
 
 本项目实现一个可复现的文本分类评估流水线，对比一下两类基线下， `20 Newsgroups` 数据集上的分类表现：
 - 传统基线：`TF-IDF + Logistic Regression`
