@@ -10,6 +10,12 @@
 - 对 20 类别进行评估（Macro-Precision / Macro-Recall / Macro-F1）
 - 生成评估报告（HTML + PDF）
 
+`20 Newsgroups` 数据集说明：
+1. 每个样本是一条 Usenet 新闻组帖子文本（邮件/论坛风格文本，包含正文及可能的引用、签名等）。
+2. 共有 `18846` 条样本（训练集 `11314`，测试集 `7532`）。
+3. 标签是 20 个主题新闻组（`alt.atheism`、`comp.graphics`、`comp.os.ms-windows.misc`、`comp.sys.ibm.pc.hardware`、`comp.sys.mac.hardware`、`comp.windows.x`、`misc.forsale`、`rec.autos`、`rec.motorcycles`、`rec.sport.baseball`、`rec.sport.hockey`、`sci.crypt`、`sci.electronics`、`sci.med`、`sci.space`、`soc.religion.christian`、`talk.politics.guns`、`talk.politics.mideast`、`talk.politics.misc`、`talk.religion.misc`）。
+4. 原始数据来自 Usenet 新闻组语料，由 Ken Lang 整理，通过 `sklearn.datasets.fetch_20newsgroups` 加载。
+
 ## 1. 项目结构
 
 ```text
