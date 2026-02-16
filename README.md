@@ -34,7 +34,7 @@
    ├─ outputs/
    └─ report_zh.pdf
 ```
-1
+
 ## 2. 环境安装
 
 建议 Python 3.10+。
@@ -74,9 +74,9 @@ python main.py --llm-max-test-samples 1000 --llm-model Qwen/Qwen2.5-1.5B-Instruc
 ## 4. 输出文件说明
 
 ### 4.1 传统基线输出
-- `outputs/baseline_tfidf_logreg_results.txt`：传统基线在测试集上的主要评估结果文本（如 accuracy 与分类报告）。
-- `modeling/configs/baseline_tfidf_logreg_pipeline.joblib`：已训练完成的 TF-IDF+LogReg pipeline，可直接加载用于预测。
-- `modeling/configs/run_tfidf_logreg_metadata.json`：tfidf_logreg 模型的元数据
+- `outputs/baseline_tfidf_logreg_results.txt`：测试集结果；accuracy；分类报告
+- `modeling/configs/baseline_tfidf_logreg_pipeline.joblib`：已训练模型；TF-IDF；LogReg；可复用推理
+- `modeling/configs/run_tfidf_logreg_metadata.json`：运行元数据；超参数；工件路径
 
 `run_tfidf_logreg_metadata.json` 重要参数：
 - `train_size` / `test_size`：训练集与测试集样本量
@@ -86,10 +86,10 @@ python main.py --llm-max-test-samples 1000 --llm-model Qwen/Qwen2.5-1.5B-Instruc
 - `artifacts`：已保存模型工件路径（pipeline/vectorizer/logreg）
 
 ### 4.2 LLM 输出
-- `outputs/results_zero_shot.txt`：LLM zero-shot 的汇总评估结果文本（准确率、unknown 占比等）。
-- `outputs/llm_predictions_zero_shot.jsonl`：逐样本预测结果（标准标签映射后的输出）。
-- `outputs/llm_raw_outputs_zero_shot.jsonl`：逐样本原始生成内容（模型未清洗/未映射前的回答）。
-- `modeling/configs/llm_run_metadata.json`：llm 的元数据
+- `outputs/results_zero_shot.txt`：zero-shot 汇总；accuracy；unknown 占比；耗时统计
+- `outputs/llm_predictions_zero_shot.jsonl`：逐样本预测；标签映射后；评估输入
+- `outputs/llm_raw_outputs_zero_shot.jsonl`：逐样本原始输出；未映射；调试分析
+- `modeling/configs/llm_run_metadata.json`：运行元数据；推理配置；结果路径
 
 `llm_run_metadata.json` 重要参数：
 - `model` / `device` / `load_in_4bit`：所用 LLM、运行设备、是否 4bit 量化加载
