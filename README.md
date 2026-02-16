@@ -74,8 +74,8 @@ python main.py --llm-max-test-samples 1000 --llm-model Qwen/Qwen2.5-1.5B-Instruc
 ## 4. 输出文件说明
 
 ### 4.1 传统基线输出
-- `outputs/baseline_tfidf_logreg_results.txt`：测试集结果；accuracy；分类报告
-- `modeling/configs/baseline_tfidf_logreg_pipeline.joblib`：已训练模型；TF-IDF；LogReg；可复用推理
+- `outputs/baseline_tfidf_logreg_results.txt`：测试结果
+- `modeling/configs/baseline_tfidf_logreg_pipeline.joblib`：已训练模型；可直接复用推理
 - `modeling/configs/run_tfidf_logreg_metadata.json`：运行元数据；超参数；工件路径
 
 `run_tfidf_logreg_metadata.json` 重要参数：
@@ -83,12 +83,12 @@ python main.py --llm-max-test-samples 1000 --llm-model Qwen/Qwen2.5-1.5B-Instruc
 - `metrics.accuracy`：基线模型整体准确率
 - `tfidf_params`：向量化核心参数（如 `max_features`、`ngram_range`、`min_df`、`max_df`）
 - `logreg_params`：逻辑回归关键参数（如 `max_iter`、`solver`）
-- `artifacts`：已保存模型工件路径（pipeline/vectorizer/logreg）
+- `artifacts`：已保存模型工件路径（.joblib格式）
 
 ### 4.2 LLM 输出
-- `outputs/results_zero_shot.txt`：zero-shot 汇总；accuracy；unknown 占比；耗时统计
-- `outputs/llm_predictions_zero_shot.jsonl`：逐样本预测；标签映射后；评估输入
-- `outputs/llm_raw_outputs_zero_shot.jsonl`：逐样本原始输出；未映射；调试分析
+- `outputs/results_zero_shot.txt`：accuracy；unknown 占比；耗时统计；输出汇总
+- `outputs/llm_predictions_zero_shot.jsonl`：逐样本预测结果
+- `outputs/llm_raw_outputs_zero_shot.jsonl`：逐样本原始输出
 - `modeling/configs/llm_run_metadata.json`：运行元数据；推理配置；结果路径
 
 `llm_run_metadata.json` 重要参数：
