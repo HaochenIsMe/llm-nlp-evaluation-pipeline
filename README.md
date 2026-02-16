@@ -150,3 +150,9 @@ python evaluation/evaluate_models.py
 ```bash
 python evaluation/generate_report.py
 ```
+
+## 8. 作者与开源声明
+
+- 项目作者：`Haochen`
+- 开源协议：`MIT License`
+- 使用说明：任何人均可下载、运行本项目，并在遵守 MIT License 条款的前提下使用、复制、修改与分发。
