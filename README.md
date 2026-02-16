@@ -5,10 +5,10 @@
 - LLM 基线：`llm_classifier`（zero-shot，模型：`Qwen/Qwen2.5-1.5B-Instruct`）
 
 项目当前支持：
-- 训练并评估传统基线
+- 训练并使用传统基线进行分类
 - 运行 LLM zero-shot 推理
-- 统一按 20 类别进行评估（Macro-Precision / Macro-Recall / Macro-F1）
-- 生成中文评估报告（HTML + PDF）
+- 对 20 类别进行评估（Macro-Precision / Macro-Recall / Macro-F1）
+- 生成评估报告（HTML + PDF）
 
 ## 1. 项目结构
 
@@ -53,23 +53,23 @@ pip install -r requirements.txt
 1. 加载 `20 Newsgroups` 训练/测试数据
 2. 训练并评估 `tfidf_logreg` 基线
 3. 运行 `llm_classifier` zero-shot 推理
+4. 生成评估报告 `report_zh.pdf`
 
 ```bash
 python main.py
 ```
 
-可选参数示例：
-
-```bash
-python main.py --llm-max-test-samples 1000 --llm-model Qwen/Qwen2.5-1.5B-Instruct
-```
-
 常用参数：
 - `--remove {headers,footers,quotes}`：数据去噪选项
 - `--llm-max-test-samples`：LLM 推理样本上限
-- `--llm-model`：Hugging Face 模型名
 - `--llm-max-chars`：单样本输入最大字符数
 - `--llm-max-input-tokens`：LLM tokenizer 截断上限
+
+可选参数示例：
+
+```bash
+python main.py --llm-max-test-samples 1000
+```
 
 ## 4. 输出文件说明
 
@@ -103,10 +103,10 @@ python main.py --llm-max-test-samples 1000 --llm-model Qwen/Qwen2.5-1.5B-Instruc
 
 `evaluation/evaluate_models.py` 模组会对本项目进行统一评估。标准如下：
 - 对 `tfidf_logreg` 与 `llm_classifier` 两个模型分别进行评估
-- 考虑到不同文本类别的难度和分布可能不均匀，采用了涉及权重配比的 `Macro-Precision`、`Macro-Recall`、`Macro-F1` 指标进行比较
+- 采用涉及权重配比的 `Macro-Precision`、`Macro-Recall`、`Macro-F1` 指标进行比较
 - 生成每个类别（20 类）的 Precision/Recall/F1 与混淆矩阵
 
-运行：
+单独运行：
 
 ```bash
 python evaluation/evaluate_models.py
@@ -140,7 +140,7 @@ python evaluation/evaluate_models.py
 - 指标选择说明
 - 混淆矩阵与误差分析
 
-运行：
+单独运行：
 
 ```bash
 python evaluation/generate_report.py
