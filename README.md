@@ -134,19 +134,6 @@ python evaluation/evaluate_models.py
 | `tfidf_logreg` | 0.6653 | 0.6469 | 0.6450 |
 | `llm_classifier` | 0.3580 | 0.1865 | 0.2001 |
 
-混淆矩阵颜色深浅（按列归一化，解决不同预测类别规模不一致问题）：
-- 深浅等级：`0`（最浅/0值） -> `5`（最深/该列最大值）
-- 行表示真实标签，列表示预测标签
-- 类别缩写：`A=alt.atheism`，`B=comp.graphics`，`C=comp.os.ms-windows.misc`，`D=comp.sys.ibm.pc.hardware`，`E=comp.sys.mac.hardware`，`F=comp.windows.x`，`G=misc.forsale`，`H=rec.autos`，`I=rec.motorcycles`，`J=rec.sport.baseball`，`K=rec.sport.hockey`，`L=sci.crypt`，`M=sci.electronics`，`N=sci.med`，`O=sci.space`，`P=soc.religion.christian`，`Q=talk.politics.guns`，`R=talk.politics.mideast`，`S=talk.politics.misc`，`T=talk.religion.misc`
-
-### TF-IDF + LogReg 混淆矩阵（截图）
-
-![TF-IDF 混淆矩阵截图](evaluation/assets/confusion_matrix_tfidf.png)
-
-### LLM 混淆矩阵（截图）
-
-![LLM 混淆矩阵截图](evaluation/assets/confusion_matrix_llm.png)
-
 ## 7. 生成中文评估报告（PDF）
 
 通过 `evaluation/generate_report.py` 生成PDF格式报告。报告内容包括：
