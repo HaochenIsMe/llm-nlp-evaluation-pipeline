@@ -86,11 +86,10 @@ python main.py --llm-max-test-samples 1000 --llm-model Qwen/Qwen2.5-1.5B-Instruc
 
 ## 5. 统一评估（20 类别）
 
-`evaluation/evaluate_models.py` 会：
-- 对 `tfidf_logreg` 与 `llm_classifier` 统一评估
-- 计算 `Macro-Precision`、`Macro-Recall`、`Macro-F1`
-- 导出每个类别（20 类）的 Precision/Recall/F1
-- 导出混淆矩阵（含 LLM unknown 版本）
+`evaluation/evaluate_models.py` 模组会对本项目进行统一评估。标准如下：
+- 对 `tfidf_logreg` 与 `llm_classifier` 两个模型分别进行评估
+- 考虑到不同文本类别的难度和分布可能不均匀，采用了涉及权重配比的 `Macro-Precision`、`Macro-Recall`、`Macro-F1` 指标进行比较
+- 生成每个类别（20 类）的 Precision/Recall/F1 与混淆矩阵
 
 运行：
 
@@ -106,19 +105,18 @@ python evaluation/evaluate_models.py
 - `confusion_matrix_llm_classifier_20x20.csv`
 - `confusion_matrix_llm_classifier_20x21_with_unknown.csv`
 
-## 6. 生成中文评估报告（PDF）
+## 6. 预测结果
 
-`evaluation/generate_report.py` 会基于评估输出生成：
-- 中文 HTML 报告：`evaluation/report_zh.html`
-- 中文 PDF 报告：`evaluation/report_zh.pdf`
+下表展示统一评估下两种模型的 Macro 指标：
 
-运行：
+| 模型 | Macro-Precision | Macro-Recall | Macro-F1 |
+| --- | ---: | ---: | ---: |
+| `tfidf_logreg` | 0.6653 | 0.6469 | 0.6450 |
+| `llm_classifier` | 0.3580 | 0.1865 | 0.2001 |
 
-```bash
-python evaluation/generate_report.py
-```
+## 7. 生成中文评估报告（PDF）
 
-报告内容包括：
+通过 `evaluation/generate_report.py` 生成PDF格式报告。报告内容包括：
 - 数据集说明
 - baseline 说明
 - 配置说明
@@ -127,11 +125,8 @@ python evaluation/generate_report.py
 - 指标选择说明
 - 混淆矩阵与误差分析
 
-## 7. 指标选择说明
+运行：
 
-本项目优先使用 Macro 指标：
-- `Macro-Precision`
-- `Macro-Recall`
-- `Macro-F1`
-
-原因：20 类文本分类任务中，类别难度和分布可能不均衡，Macro 指标对每个类别等权重，更适合做模型横向对比。
+```bash
+python evaluation/generate_report.py
+```

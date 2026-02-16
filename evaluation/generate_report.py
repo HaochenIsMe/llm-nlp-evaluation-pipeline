@@ -220,11 +220,16 @@ def _write_html(report_html: Path, detailed: Dict[str, object], summary: Dict[st
       </tr>
     </tbody>
   </table>
+  <p>其中，LLM 预测中的 <code>unknown</code> 是指：模型没有以 20 个标准标签之一作答，而是输出了无法匹配任何标签的内容。</p>
 
   <h2>7. 混淆矩阵与误差分析</h2>
   <p>为解决类别名称过长导致的显示出界，混淆矩阵统一使用 <b>A~T</b> 表示 20 个类别；完整映射见下方表格。</p>
   {_matrix_html(tfidf['confusion_matrix_20x20'], labels, aliases, 'TF-IDF + LogReg 混淆矩阵 (20x20)')}
   {_matrix_html(llm['confusion_matrix_20x20'], labels, aliases, 'LLM 混淆矩阵 (20x20，仅统计可映射标签)')}
+  <div class="note">
+    说明：在按 20 类混淆矩阵展示时， <code>unknown</code> 样本不计入 20x20 方阵，
+    详细数量见 summary 文件中的 <code>unknown_prediction_rate</code>。
+  </div>
   {_alias_mapping_html(labels, aliases)}
 
   <h3>TF-IDF + LogReg 主要混淆对</h3>
@@ -233,10 +238,6 @@ def _write_html(report_html: Path, detailed: Dict[str, object], summary: Dict[st
   <h3>LLM 主要混淆对</h3>
   {top_error_list(llm_top_errors)}
 
-  <div class="note">
-    说明：LLM 存在部分输出无法映射到 20 个标准标签的情况，评估中记为 unknown；
-    在按 20 类混淆矩阵展示时，这部分样本不计入 20x20 方阵，详细数量见 summary 文件中的 unknown_prediction_rate。
-  </div>
 </body>
 </html>
 """
