@@ -38,24 +38,29 @@ def _top_confusions(matrix: List[List[int]], labels: List[str], top_n: int = 10)
     return pairs[:top_n]
 
 
-def _cell_style(value: int, max_value: int) -> str:
-    if value <= 0 or max_value <= 0:
+def _cell_style(value: int, column_max: int) -> str:
+    if value <= 0 or column_max <= 0:
         return "background-color: #ffffff;"
-    ratio = value / max_value
+    ratio = value / column_max
     # Larger value -> darker color.
     lightness = 97 - int(52 * ratio)
     return f"background-color: hsl(197, 82%, {lightness}%);"
 
 
 def _matrix_html(matrix: List[List[int]], labels: List[str], aliases: List[str], title: str) -> str:
-    max_value = max((max(row) for row in matrix), default=0)
+    n_cols = len(matrix[0]) if matrix else 0
+    col_max = [0] * n_cols
+    for row in matrix:
+        for j, value in enumerate(row):
+            if value > col_max[j]:
+                col_max[j] = int(value)
     header_cells = "".join(f"<th>{html.escape(alias)}</th>" for alias in aliases)
 
     body_rows = []
     for i, row in enumerate(matrix):
         cells = []
-        for value in row:
-            style = _cell_style(int(value), max_value)
+        for j, value in enumerate(row):
+            style = _cell_style(int(value), col_max[j])
             cells.append(f"<td style='{style}'>{int(value)}</td>")
         body_rows.append(f"<tr><th>{html.escape(aliases[i])}</th>{''.join(cells)}</tr>")
 
