@@ -134,6 +134,26 @@ python evaluation/evaluate_models.py
 | `tfidf_logreg` | 0.6653 | 0.6469 | 0.6450 |
 | `llm_classifier` | 0.3580 | 0.1865 | 0.2001 |
 
+### 6.1 项目结论
+
+1. `20 Newsgroups` 数据集属于高维词汇区分明显的主题分类任务，对稀疏词特征友好，线性模型通常较强。  
+2. 传统基线是监督学习，直接在标签上训练，学习到的是该数据集上的判别边界；LLM 使用 zero-shot，没有同等训练参照。  
+3. LLM 模型参数较小（当前为 `1.5B`），出现标签坍缩；具体体现为 `talk.politics.guns`、`talk.politics.mideast`、`talk.politics.misc`、`talk.religion.misc` 大量被预测为 `soc.religion.christian`。  
+4. LLM 存在非正确/错误标签输出（如无法映射标签的输出），等于丢失部分样本；传统基线不存在这类标签映射损失。  
+
+### 6.2 改进方向：传统基线
+
+1. 选择性移除 `headers`、`footers`、`quotes`，对比不同文本清洗策略的输出结果。  
+2. 对 `ngram_range`、`max_df/min_df`、`max_features`、`sublinear_tf`、tokenization 做强基线调参。  
+3. 对比更强线性分类模型，如 `LinearSVC` 与 `SGDClassifier`。  
+
+### 6.3 改进方向：LLM 模型
+
+1. 使用更高参数模型（当前模型为 `1.5B`）。  
+2. 做 SFT 微调，将任务明确为“输入一段文本 -> 输出 20 个类别中的一个”。  
+3. 先粗分类（`comp/rec/sci/talk/soc/misc/alt`），再在组内细分，减少语义塌缩。  
+4. 同一样本多次采样后投票。  
+
 ## 7. 生成中文评估报告（PDF）
 
 通过 `evaluation/generate_report.py` 生成PDF格式报告。报告内容包括：
